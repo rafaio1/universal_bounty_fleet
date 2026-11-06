@@ -17,22 +17,29 @@ from app.utils.github_client import get_github_client
 
 logger = logging.getLogger(__name__)
 
+CONFIRMED_EVM_PAYOUT_ADDRESS = "0x398826722Df83a3b7E360Eec399401d67af1bDe9"
+
 
 def format_claim_comment(
     evm_address: Optional[str] = None,
     stellar_address: Optional[str] = None,
 ) -> str:
-    """Format standard /try comment body with mandatory Payout Routing block."""
+    """Format a claim only for the confirmed Base USDC recipient."""
     settings = get_settings()
     evm = evm_address or settings.evm_payout_address
-    stellar = stellar_address or settings.stellar_payout_address
+    if evm.casefold() != CONFIRMED_EVM_PAYOUT_ADDRESS.casefold():
+        raise ValueError("EVM payout address does not match the confirmed recipient")
+    stellar = stellar_address if stellar_address is not None else settings.stellar_payout_address
 
-    return (
-        "I would like to work on this issue! /try\n\n"
-        "## Payout Routing\n"
-        f"- **EVM (Base/Arbitrum/Polygon/ETH):** `{evm}`\n"
-        f"- **Stellar:** `{stellar}`"
-    )
+    lines = [
+        "I would like to work on this issue! /try",
+        "",
+        "## Payout Routing",
+        f"- **USDC on Base:** `{evm}`",
+    ]
+    if stellar:
+        lines.append(f"- **Stellar:** `{stellar}`")
+    return "\n".join(lines)
 
 
 class ClaimStaker:
