@@ -2,13 +2,16 @@
 
 import asyncio
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.intake.claim_staker import (
     CONFIRMED_EVM_PAYOUT_ADDRESS,
+    ClaimStaker,
     format_claim_comment,
 )
+from app.config import get_settings
 from app.intake.escrow_engine import (
     evaluate_escrow_funding,
     extract_regex_financials,
@@ -85,3 +88,39 @@ def test_webhook_never_claims_without_all_gates(monkeypatch, funding, enabled, e
     result = asyncio.run(gateway.route_issue_event("opened", payload))
     assert result["is_funded"] is expected_funded
     assert result["staked"] is False
+
+
+def test_old_evm_environment_cannot_post_claim(monkeypatch):
+    monkeypatch.setenv(
+        "EVM_PAYOUT_ADDRESS", "0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4"
+    )
+    monkeypatch.setenv(
+        "STELLAR_PAYOUT_ADDRESS", "GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC"
+    )
+    get_settings.cache_clear()
+    github = MagicMock()
+    firestore = MagicMock()
+    firestore.collection.return_value.document.return_value.get.return_value.exists = False
+    payload = {
+        "issue": {"number": 7},
+        "repository": {"full_name": "example/repo"},
+    }
+    try:
+        with pytest.raises(ValueError, match="confirmed recipient"):
+            ClaimStaker().stake_intent(
+                payload, github_client=github, firestore_client=firestore
+            )
+        github.post_issue_comment.assert_not_called()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_stellar_environment_is_never_posted(monkeypatch):
+    monkeypatch.setenv(
+        "STELLAR_PAYOUT_ADDRESS", "GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC"
+    )
+    get_settings.cache_clear()
+    try:
+        assert "Stellar" not in format_claim_comment()
+    finally:
+        get_settings.cache_clear()
