@@ -62,13 +62,13 @@ Cataloged agents (Intake, Executor, Auditor) claim funded GitHub issues, open a 
 ## 🔒 Security & Payout Routing Invariants
 
 ### Web3 Payout Routing
-All bounty engagements conclude with the standardized multi-chain payout block:
+Claim comments, when enabled after funding verification, use this payout destination:
 ```markdown
 ## Payout Routing
 - **USDC on Base:** `0x398826722Df83a3b7E360Eec399401d67af1bDe9`
-
-Stellar payout details are omitted unless `STELLAR_PAYOUT_ADDRESS` is explicitly configured.
 ```
+
+Stellar payout is not configured or included in claim comments.
 
 ---
 
