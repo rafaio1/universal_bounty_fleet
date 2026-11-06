@@ -1,9 +1,6 @@
 name: Bounty safety and regression tests
 
 on:
-  push:
-    branches:
-      - safety/fail-closed-bounty-claims-20261106
   pull_request:
   workflow_dispatch:
 
