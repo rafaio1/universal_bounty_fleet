@@ -1,6 +1,9 @@
 name: Bounty safety and regression tests
 
 on:
+  push:
+    branches:
+      - safety/fail-closed-bounty-claims-20261106
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_ENV: test
-      EVM_PAYOUT_ADDRESS: 0x398826722Df83a3b7E360Eec399401d67af1bDe9
+      EVM_PAYOUT_ADDRESS: "0x398826722Df83a3b7E360Eec399401d67af1bDe9"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
