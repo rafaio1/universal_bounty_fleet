@@ -1,5 +1,11 @@
 # The Universal Bounty Fleet
 
+## Taskmarket candidate discovery
+
+The hourly [read-only scan](.github/workflows/taskmarket-scan.yml) queries Taskmarket's official open-task API for Base tasks with at least 200 USDC net reward. It emits an explicit zero-candidate JSON result when none qualify. A candidate also needs an unassigned, open GitHub programming issue, no stake or prior submissions, and a successful Base receipt containing both the matching `TaskCreated` event and a native USDC transfer to the [Taskmarket contract](https://docs.taskmarket.dev/smart-contracts/overview). The scan is bounded to five pages and 10 minutes; it never claims tasks, posts comments, signs transactions, or spends funds. The JSON result is retained as a GitHub Actions artifact for seven days. Candidate discovery is not a payout or a guarantee of award.
+
+Source details: [Taskmarket API](https://docs.taskmarket.dev/api/reference), [Taskmarket contracts](https://docs.taskmarket.dev/smart-contracts/overview), [Base USDC](https://docs.base.org/base-chain/network-information).
+
 > Autonomous multi-agent bounty execution with a fail-closed Victory Audit. Fortified Enterprise Fleet track.
 
 Cataloged agents (Intake, Executor, Auditor) claim funded GitHub issues, open a draft PR, and **cannot merge until a separate auditor passes**. The live camera is `/console` — not a chatbot.
