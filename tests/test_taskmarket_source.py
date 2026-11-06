@@ -86,6 +86,8 @@ def test_empty_official_feed_reports_zero_candidates():
     assert result["scanned_open_tasks"] == 0
     assert result["portfolio_target_usdc"] == 200.0
     assert result["candidate_indicative_net_pool_usdc"] == 0.0
+    assert result["base_open_advertised_reward_pool_usdc"] == 0.0
+    assert "base_open_escrow_pool_usdc" not in result
 
 
 def test_synthetic_verified_shape_is_candidate():
@@ -95,6 +97,7 @@ def test_synthetic_verified_shape_is_candidate():
     assert reason == "candidate"
     assert candidate["github_issue_url"] == "https://github.com/example/project/issues/7"
     assert candidate["task_web_url"] == f"https://taskmarket.dev/tasks/{TASK_ID}"
+    assert candidate["scope_classification"] == "programming"
     assert candidate["net_reward_usdc"] == 210.0
     assert candidate["proof_level"] == "base_receipt_task_created_and_usdc_transfer"
     assert candidate["write_actions_taken"] is False
@@ -102,13 +105,14 @@ def test_synthetic_verified_shape_is_candidate():
 
 def test_native_task_with_competition_is_reported_with_fee_threshold():
     candidate, reason = source.assess_task(
-        task(description="Build a standalone HTML application", tags=["html"], submissionCount=71,
+        task(description="Design a standalone HTML frontend", tags=["html", "frontend", "design"], submissionCount=71,
              recentActivityCount=16, netReward="1500000"),
         now=datetime.now(timezone.utc), reader=lambda *args, **kwargs: pytest.fail("No GitHub issue expected"),
         rpc_reader=rpc_reader,
     )
     assert reason == "candidate"
     assert candidate["github_issue_url"] is None
+    assert candidate["scope_classification"] == "frontend_design"
     assert candidate["submission_count"] == 71
     assert candidate["recent_activity_count"] == 16
     assert candidate["submission_fee_threshold_reached"] is True

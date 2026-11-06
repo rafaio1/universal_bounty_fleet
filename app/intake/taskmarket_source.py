@@ -229,8 +229,14 @@ def assess_task(
     if expiry is None or expiry <= now + timedelta(hours=1):
         return None, "deadline_unsuitable"
     tags = task.get("tags")
-    if not isinstance(tags, list) or not {str(tag).lower() for tag in tags}.intersection(CODE_TAGS):
-        return None, "programming_scope_unproven"
+    if not isinstance(tags, list):
+        return None, "code_or_frontend_scope_unproven"
+    normalized_tags = {str(tag).lower() for tag in tags}
+    if not normalized_tags.intersection(CODE_TAGS):
+        return None, "code_or_frontend_scope_unproven"
+    scope_classification = (
+        "frontend_design" if normalized_tags.intersection({"design", "ui", "ux"}) else "programming"
+    )
     description = task.get("description")
     if not isinstance(description, str) or not description.strip():
         return None, "brief_missing"
@@ -259,6 +265,7 @@ def assess_task(
         "task_id": task_id,
         "task_api_url": f"{TASKS_API}/{task_id}",
         "task_web_url": f"{TASKS_WEB}/{task_id}",
+        "scope_classification": scope_classification,
         "github_issue_url": issue_url,
         "reward_usdc": reward / 1_000_000,
         "net_reward_usdc": net_reward / 1_000_000,
@@ -285,7 +292,7 @@ def scan(
     tasks = task_pages(reader, min_reward_units=min_reward_units)
     candidates: list[dict[str, Any]] = []
     rejected: Counter[str] = Counter()
-    base_open_escrow_units = 0
+    base_open_advertised_reward_units = 0
     base_open_count = 0
     candidate_net_pool_units = 0
     if tasks and rpc("eth_chainId", [], reader=rpc_reader) != hex(CHAIN_ID):
@@ -293,7 +300,7 @@ def scan(
     for task in tasks:
         if task.get("chainId") == CHAIN_ID and task.get("status") == "open":
             base_open_count += 1
-            base_open_escrow_units += _amount(task.get("reward")) or 0
+            base_open_advertised_reward_units += _amount(task.get("reward")) or 0
         candidate, reason = assess_task(
             task, now=now, min_reward_units=min_reward_units, reader=reader, rpc_reader=rpc_reader
         )
@@ -311,10 +318,10 @@ def scan(
         "observed_utc": now.isoformat(),
         "scanned_open_tasks": len(tasks),
         "base_open_tasks_at_or_above_query_minimum": base_open_count,
-        "base_open_escrow_pool_usdc": base_open_escrow_units / 1_000_000,
+        "base_open_advertised_reward_pool_usdc": base_open_advertised_reward_units / 1_000_000,
         "candidate_count": len(candidates),
         "candidate_indicative_net_pool_usdc": candidate_net_pool_units / 1_000_000,
-        "reward_sum_semantics": "Escrow pools across distinct contests; not expected or realized worker income. Split awards may pay less to one worker.",
+        "reward_sum_semantics": "Base open total is API-advertised, not receipt-verified. Candidate funding is receipt-verified at creation; net reward estimates come from the API. Neither sum is expected or realized worker income, and split awards can pay less to one worker.",
         "candidates": candidates,
         "rejected_counts": dict(sorted(rejected.items())),
         "read_only": True,
