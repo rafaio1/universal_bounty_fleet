@@ -65,8 +65,9 @@ Cataloged agents (Intake, Executor, Auditor) claim funded GitHub issues, open a 
 All bounty engagements conclude with the standardized multi-chain payout block:
 ```markdown
 ## Payout Routing
-- **EVM (Base/Arbitrum/Polygon/ETH):** `0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4`
-- **Stellar:** `GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC`
+- **USDC on Base:** `0x398826722Df83a3b7E360Eec399401d67af1bDe9`
+
+Stellar payout details are omitted unless `STELLAR_PAYOUT_ADDRESS` is explicitly configured.
 ```
 
 ---
@@ -74,6 +75,9 @@ All bounty engagements conclude with the standardized multi-chain payout block:
 ## 🛠️ Configuration & Deployment
 
 ### Environment Variables
+
+Automatic `/try` claim comments are disabled by default. The issue text and an AI funding assessment are never accepted as escrow proof. A trusted platform or on-chain proof verifier must be implemented before setting `AUTO_CLAIM_ENABLED=true`; only verified USDC on Base may trigger a claim.
+
 ```bash
 GCP_PROJECT="odin-500008"
 GCP_REGION="us-central1"
