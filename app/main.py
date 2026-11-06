@@ -94,7 +94,7 @@ def _persist_audit(details: Dict[str, Any], pr: Dict[str, Any]) -> None:
     try:
         repo = details.get("repo") or "unknown/unknown"
         pr_number = details.get("pr_number") or 0
-        bounty_id = f"{repo.replace('/', '-')}#{pr_number}"
+        bounty_id = f"{repo}#{pr_number}"
         findings = details.get("audit_findings") or {}
         verdict = details.get("verdict") or "REQUEST_CHANGES"
         cheat = classify_cheat(findings)
@@ -245,7 +245,7 @@ async def route_issue_event(
         if is_funded and eligible_payout and settings.auto_claim_enabled:
             if settings.github_token or settings.app_env != "test":
                 try:
-                    staked_res = execute_claim_staking(payload)
+                    staked_res = execute_claim_staking(payload, verified_escrow=escrow_res)
                 except Exception as stake_err:
                     logger.debug("Could not stake intent: %s", stake_err)
 

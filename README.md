@@ -76,7 +76,7 @@ Stellar payout is not configured or included in claim comments.
 
 ### Environment Variables
 
-Automatic `/try` claim comments are disabled by default. The issue text and an AI funding assessment are never accepted as escrow proof. A trusted platform or on-chain proof verifier must be implemented before setting `AUTO_CLAIM_ENABLED=true`; only verified USDC on Base may trigger a claim.
+Automatic `/try` claim comments are disabled by default at the final posting boundary. Issue text and an AI funding assessment are never accepted as escrow proof. A trusted platform or on-chain proof verifier must be implemented before setting `AUTO_CLAIM_ENABLED=true`; only verified USDC on Base with a proof reference may trigger a claim. Webhooks are rejected unless `GITHUB_WEBHOOK_SECRET` is explicitly set.
 
 ```bash
 GCP_PROJECT="odin-500008"

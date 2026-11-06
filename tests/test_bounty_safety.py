@@ -97,6 +97,7 @@ def test_old_evm_environment_cannot_post_claim(monkeypatch):
     monkeypatch.setenv(
         "STELLAR_PAYOUT_ADDRESS", "GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC"
     )
+    monkeypatch.setenv("AUTO_CLAIM_ENABLED", "true")
     get_settings.cache_clear()
     github = MagicMock()
     firestore = MagicMock()
@@ -108,7 +109,17 @@ def test_old_evm_environment_cannot_post_claim(monkeypatch):
     try:
         with pytest.raises(ValueError, match="confirmed recipient"):
             ClaimStaker().stake_intent(
-                payload, github_client=github, firestore_client=firestore
+                payload,
+                github_client=github,
+                firestore_client=firestore,
+                verified_escrow={
+                    "is_funded": True,
+                    "proof_verified": True,
+                    "currency": "USDC",
+                    "chain": "base",
+                    "proof_source": "onchain_tx",
+                    "proof_reference": "0x" + "a" * 64,
+                },
             )
         github.post_issue_comment.assert_not_called()
     finally:
@@ -122,5 +133,73 @@ def test_stellar_environment_is_never_posted(monkeypatch):
     get_settings.cache_clear()
     try:
         assert "Stellar" not in format_claim_comment()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_direct_staker_rejects_model_only_proof(monkeypatch):
+    monkeypatch.setenv("AUTO_CLAIM_ENABLED", "true")
+    get_settings.cache_clear()
+    github = MagicMock()
+    payload = {"issue": {"number": 7}, "repository": {"full_name": "example/repo"}}
+    try:
+        result = ClaimStaker().stake_intent(
+            payload,
+            github_client=github,
+            verified_escrow={
+                "is_funded": True,
+                "proof_verified": False,
+                "currency": "USDC",
+                "chain": "base",
+            },
+        )
+        assert result["reason"] == "VERIFIED_BASE_USDC_ESCROW_REQUIRED"
+        github.post_issue_comment.assert_not_called()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_exported_intake_pipeline_does_not_claim_on_model_result():
+    from app.intake import IntakePipeline
+
+    class SniperStub:
+        def evaluate(self, _):
+            return {"qualified": True}
+
+    class EscrowStub:
+        def evaluate(self, _, vertex_client=None):
+            return {
+                "is_funded": True,
+                "proof_verified": False,
+                "amount_usd": 500,
+                "currency": "USDC",
+                "chain": "base",
+            }
+
+    staker = MagicMock()
+    pipeline = IntakePipeline(
+        sniper_filter=SniperStub(),
+        escrow_engine=EscrowStub(),
+        claim_staker=staker,
+    )
+    result = pipeline.process_issue(
+        {"issue": {"number": 7}, "repository": {"full_name": "example/repo"}}
+    )
+    assert result["staked"] is False
+    staker.stake_intent.assert_not_called()
+
+
+def test_missing_webhook_secret_rejects_known_old_default(monkeypatch):
+    from app.security.hmac_validator import (
+        generate_github_signature,
+        verify_github_signature,
+    )
+
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    get_settings.cache_clear()
+    try:
+        body = b'{"event":"pull_request"}'
+        forged = generate_github_signature(body, "ubf-dev-secret-2026")
+        assert verify_github_signature(body, forged) is False
     finally:
         get_settings.cache_clear()

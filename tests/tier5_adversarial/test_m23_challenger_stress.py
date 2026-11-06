@@ -216,7 +216,7 @@ class TestEscrowEngineAdversarial:
         ]
         for text, expected_amt, expected_curr in test_cases:
             res = extract_regex_financials(f"We have deposited {text} into escrow for this issue.")
-            assert res["is_funded"], f"Failed to parse funded status for: {text}"
+            assert res["is_funded"] is False, f"Text alone must not prove funding: {text}"
             assert res["amount_usd"] == pytest.approx(expected_amt), f"Amount mismatch for {text}"
             assert res["currency"] == expected_curr, f"Currency mismatch for {text}"
 

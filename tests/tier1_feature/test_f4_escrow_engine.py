@@ -33,8 +33,8 @@ def run_escrow_evaluation(payload: dict, vertex_client: MockVertexAIClient) -> d
         return {"is_funded": False, "amount_usd": 0.0, "confidence": 0.0, "reasoning": "Parse error"}
 
 
-def test_f4_valid_grantfox_escrow_confirmed(mock_vertex_client):
-    """Test F4.1: GrantFox verified bot comment evaluated as funded with $5,000."""
+def test_f4_grantfox_claim_without_receipt_is_unverified(mock_vertex_client):
+    """Test F4.1: A bot-shaped comment and model answer are not proof of escrow."""
     payload = make_issue_payload(
         comments=[{"id": 1, "body": "💰 **Bounty Confirmed**: 5,000 USD has been locked in GrantFox smart contract escrow."}]
     )
@@ -45,9 +45,9 @@ def test_f4_valid_grantfox_escrow_confirmed(mock_vertex_client):
         "reasoning": "Smart contract escrow locked."
     })
     res = run_escrow_evaluation(payload, mock_vertex_client)
-    assert res["is_funded"] is True
+    assert res["is_funded"] is False
+    assert res["proof_verified"] is False
     assert res["amount_usd"] == 5000.0
-    assert res["confidence"] >= 0.90
 
 
 def test_f4_unfunded_issue_evaluated_as_not_funded(mock_vertex_client):
@@ -79,8 +79,8 @@ def test_f4_rejected_reward_evaluated_as_not_funded(mock_vertex_client):
     assert res["is_funded"] is False
 
 
-def test_f4_crypto_denomination_parsed_correctly(mock_vertex_client):
-    """Test F4.4: Evaluates crypto token denomination (e.g. 10,000 XLM / $1,200 USD)."""
+def test_f4_crypto_denomination_does_not_prove_funding(mock_vertex_client):
+    """Test F4.4: A token amount can be parsed while funding stays unverified."""
     payload = make_issue_payload(
         comments=[{"id": 3, "body": "Grant awarded: 10,000 XLM ($1,200 USD) locked in Soroban escrow."}]
     )
@@ -91,7 +91,8 @@ def test_f4_crypto_denomination_parsed_correctly(mock_vertex_client):
         "reasoning": "Soroban escrow locked with 10,000 XLM."
     })
     res = run_escrow_evaluation(payload, mock_vertex_client)
-    assert res["is_funded"] is True
+    assert res["is_funded"] is False
+    assert res["proof_verified"] is False
     assert res["amount_usd"] == 1200.0
 
 

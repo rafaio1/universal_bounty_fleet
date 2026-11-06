@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         description="GitHub Personal Access Token or App Token",
     )
     github_webhook_secret: Optional[str] = Field(
-        default="ubf-dev-secret-2026",
+        default=None,
         validation_alias="GITHUB_WEBHOOK_SECRET",
         description="HMAC secret key for GitHub webhook validation",
     )

@@ -59,7 +59,7 @@ class IntakePipeline:
 
         # 2. Semantic Escrow Funding Gate
         escrow_res = self.escrow_engine.evaluate(payload, vertex_client=vertex_client)
-        if not escrow_res.get("is_funded", False):
+        if not (escrow_res.get("is_funded") and escrow_res.get("proof_verified")):
             return {
                 "qualified": False,
                 "staked": False,
@@ -73,6 +73,7 @@ class IntakePipeline:
             payload=payload,
             github_client=github_client,
             firestore_client=firestore_client,
+            verified_escrow=escrow_res,
         )
 
         return {

@@ -28,8 +28,7 @@ from app.security.hmac_validator import generate_github_signature
 
 # Standard Invariant Constants
 WEBHOOK_SECRET = "test-webhook-secret-12345"
-EVM_PAYOUT_ADDRESS = "0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4"
-STELLAR_PAYOUT_ADDRESS = "GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC"
+EVM_PAYOUT_ADDRESS = "0x398826722Df83a3b7E360Eec399401d67af1bDe9"
 
 
 def generate_hub_signature(payload_bytes: bytes, secret: str = WEBHOOK_SECRET) -> str:
