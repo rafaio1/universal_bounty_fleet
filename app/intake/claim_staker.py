@@ -29,7 +29,8 @@ def format_claim_comment(
     evm = evm_address or settings.evm_payout_address
     if evm.casefold() != CONFIRMED_EVM_PAYOUT_ADDRESS.casefold():
         raise ValueError("EVM payout address does not match the confirmed recipient")
-    stellar = stellar_address if stellar_address is not None else settings.stellar_payout_address
+    if stellar_address:
+        raise ValueError("Stellar payout has not been confirmed")
 
     lines = [
         "I would like to work on this issue! /try",
@@ -37,8 +38,6 @@ def format_claim_comment(
         "## Payout Routing",
         f"- **USDC on Base:** `{evm}`",
     ]
-    if stellar:
-        lines.append(f"- **Stellar:** `{stellar}`")
     return "\n".join(lines)
 
 
@@ -52,14 +51,12 @@ class ClaimStaker:
     ) -> None:
         settings = get_settings()
         self.evm_address = evm_address or settings.evm_payout_address
-        self.stellar_address = stellar_address or settings.stellar_payout_address
+        if stellar_address:
+            raise ValueError("Stellar payout has not been confirmed")
 
     def format_comment(self) -> str:
         """Generate formatted comment string."""
-        return format_claim_comment(
-            evm_address=self.evm_address,
-            stellar_address=self.stellar_address,
-        )
+        return format_claim_comment(evm_address=self.evm_address)
 
     def stake_intent(
         self,
