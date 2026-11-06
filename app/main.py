@@ -235,9 +235,14 @@ async def route_issue_event(
 
     if is_qualified and action in ("opened", "reopened", "labeled", "created", "synchronize", "unknown"):
         escrow_res = evaluate_escrow_funding(payload)
-        is_funded = escrow_res.get("is_funded", False)
-        if is_funded:
-            settings = get_settings()
+        is_funded = bool(escrow_res.get("is_funded") and escrow_res.get("proof_verified"))
+        # Claims are opt-in and limited to verified USDC escrow on Base.
+        settings = get_settings()
+        eligible_payout = (
+            str(escrow_res.get("currency", "")).upper() == "USDC"
+            and str(escrow_res.get("chain", "")).lower() == "base"
+        )
+        if is_funded and eligible_payout and settings.auto_claim_enabled:
             if settings.github_token or settings.app_env != "test":
                 try:
                     staked_res = execute_claim_staking(payload)
@@ -255,7 +260,8 @@ async def route_issue_event(
         "qualified": is_qualified,
         "qualification_reason": qual_reason,
         "is_funded": is_funded,
-        "escrow_amount": escrow_res.get("amount_usd", 0.0),
+        "escrow_amount": escrow_res.get("amount_usd", 0.0) if is_funded else 0.0,
+        "advertised_amount": escrow_res.get("amount_usd", 0.0),
         "staked": staked_res.get("success", False),
         "comment_id": staked_res.get("comment_id"),
     }
