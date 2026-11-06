@@ -1,0 +1,28 @@
+name: Bounty safety and regression tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      EVM_PAYOUT_ADDRESS: 0x398826722Df83a3b7E360Eec399401d67af1bDe9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check Python syntax
+        run: python -m compileall -q app tests
+      - name: Run focused safety tests
+        run: python -m pytest -q tests/test_bounty_safety.py
+      - name: Run full regression suite
+        run: python -m pytest -q tests
