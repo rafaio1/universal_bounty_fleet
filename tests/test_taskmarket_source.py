@@ -24,6 +24,8 @@ def task(**changes):
         "status": "open",
         "mode": "bounty",
         "taskVisibility": "public",
+        "identity": [],
+        "verifiedBy": [],
         "claimedBy": None,
         "claimedAt": None,
         "stakeRequired": False,
@@ -75,13 +77,15 @@ def rpc_reader(url, *, body):
 
 def test_empty_official_feed_reports_zero_candidates():
     def reader(url, **kwargs):
-        assert "status=open" in url and "minReward=200000000" in url
+        assert "status=open" in url and "minReward=1000000" in url
         return {"tasks": [], "hasMore": False, "nextCursor": None}
 
     result = source.scan(reader=reader, rpc_reader=lambda *args, **kwargs: pytest.fail("RPC should not be called"))
     assert result["candidate_count"] == 0
     assert result["candidates"] == []
     assert result["scanned_open_tasks"] == 0
+    assert result["portfolio_target_usdc"] == 200.0
+    assert result["candidate_indicative_net_pool_usdc"] == 0.0
 
 
 def test_synthetic_verified_shape_is_candidate():
@@ -90,9 +94,24 @@ def test_synthetic_verified_shape_is_candidate():
     )
     assert reason == "candidate"
     assert candidate["github_issue_url"] == "https://github.com/example/project/issues/7"
+    assert candidate["task_web_url"] == f"https://taskmarket.dev/tasks/{TASK_ID}"
     assert candidate["net_reward_usdc"] == 210.0
     assert candidate["proof_level"] == "base_receipt_task_created_and_usdc_transfer"
     assert candidate["write_actions_taken"] is False
+
+
+def test_native_task_with_competition_is_reported_with_fee_threshold():
+    candidate, reason = source.assess_task(
+        task(description="Build a standalone HTML application", tags=["html"], submissionCount=71,
+             recentActivityCount=16, netReward="1500000"),
+        now=datetime.now(timezone.utc), reader=lambda *args, **kwargs: pytest.fail("No GitHub issue expected"),
+        rpc_reader=rpc_reader,
+    )
+    assert reason == "candidate"
+    assert candidate["github_issue_url"] is None
+    assert candidate["submission_count"] == 71
+    assert candidate["recent_activity_count"] == 16
+    assert candidate["submission_fee_threshold_reached"] is True
 
 
 @pytest.mark.parametrize("change", [
@@ -101,11 +120,11 @@ def test_synthetic_verified_shape_is_candidate():
     {"status": "completed"},
     {"claimedBy": REQUESTER},
     {"stakeRequired": True},
-    {"submissionCount": 1},
-    {"pitchCount": 1},
-    {"netReward": "199999999"},
+    {"submissionCount": None},
+    {"identity": ["erc8004:identity:registered"]},
+    {"netReward": "999999"},
     {"tags": ["research"]},
-    {"description": "No actionable issue"},
+    {"description": ""},
 ])
 def test_unfunded_wrong_chain_claimed_or_unactionable_is_rejected(change):
     candidate, reason = source.assess_task(
