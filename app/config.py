@@ -96,11 +96,6 @@ class Settings(BaseSettings):
         validation_alias="EVM_PAYOUT_ADDRESS",
         description="Standard EVM payout wallet address",
     )
-    stellar_payout_address: Optional[str] = Field(
-        default=None,
-        validation_alias="STELLAR_PAYOUT_ADDRESS",
-        description="Standard Stellar/Soroban payout address",
-    )
 
 
 @lru_cache()
