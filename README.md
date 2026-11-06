@@ -62,18 +62,22 @@ Cataloged agents (Intake, Executor, Auditor) claim funded GitHub issues, open a 
 ## 🔒 Security & Payout Routing Invariants
 
 ### Web3 Payout Routing
-All bounty engagements conclude with the standardized multi-chain payout block:
+Claim comments, when enabled after funding verification, use this payout destination:
 ```markdown
 ## Payout Routing
-- **EVM (Base/Arbitrum/Polygon/ETH):** `0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4`
-- **Stellar:** `GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC`
+- **USDC on Base:** `0x398826722Df83a3b7E360Eec399401d67af1bDe9`
 ```
+
+Stellar payout is not configured or included in claim comments.
 
 ---
 
 ## 🛠️ Configuration & Deployment
 
 ### Environment Variables
+
+Automatic `/try` claim comments are disabled by default at the final posting boundary. Issue text and an AI funding assessment are never accepted as escrow proof. A trusted platform or on-chain proof verifier must be implemented before setting `AUTO_CLAIM_ENABLED=true`; only verified USDC on Base with a proof reference may trigger a claim. Webhooks are rejected unless `GITHUB_WEBHOOK_SECRET` is explicitly set.
+
 ```bash
 GCP_PROJECT="odin-500008"
 GCP_REGION="us-central1"

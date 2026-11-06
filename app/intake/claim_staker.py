@@ -17,22 +17,28 @@ from app.utils.github_client import get_github_client
 
 logger = logging.getLogger(__name__)
 
+CONFIRMED_EVM_PAYOUT_ADDRESS = "0x398826722Df83a3b7E360Eec399401d67af1bDe9"
+
 
 def format_claim_comment(
     evm_address: Optional[str] = None,
     stellar_address: Optional[str] = None,
 ) -> str:
-    """Format standard /try comment body with mandatory Payout Routing block."""
+    """Format a claim only for the confirmed Base USDC recipient."""
     settings = get_settings()
     evm = evm_address or settings.evm_payout_address
-    stellar = stellar_address or settings.stellar_payout_address
+    if evm.casefold() != CONFIRMED_EVM_PAYOUT_ADDRESS.casefold():
+        raise ValueError("EVM payout address does not match the confirmed recipient")
+    if stellar_address:
+        raise ValueError("Stellar payout has not been confirmed")
 
-    return (
-        "I would like to work on this issue! /try\n\n"
-        "## Payout Routing\n"
-        f"- **EVM (Base/Arbitrum/Polygon/ETH):** `{evm}`\n"
-        f"- **Stellar:** `{stellar}`"
-    )
+    lines = [
+        "I would like to work on this issue! /try",
+        "",
+        "## Payout Routing",
+        f"- **USDC on Base:** `{evm}`",
+    ]
+    return "\n".join(lines)
 
 
 class ClaimStaker:
@@ -45,22 +51,34 @@ class ClaimStaker:
     ) -> None:
         settings = get_settings()
         self.evm_address = evm_address or settings.evm_payout_address
-        self.stellar_address = stellar_address or settings.stellar_payout_address
+        if stellar_address:
+            raise ValueError("Stellar payout has not been confirmed")
 
     def format_comment(self) -> str:
         """Generate formatted comment string."""
-        return format_claim_comment(
-            evm_address=self.evm_address,
-            stellar_address=self.stellar_address,
-        )
+        return format_claim_comment(evm_address=self.evm_address)
 
     def stake_intent(
         self,
         payload: Dict[str, Any],
         github_client: Optional[Any] = None,
         firestore_client: Optional[Any] = None,
+        verified_escrow: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Execute claim staking for target issue payload."""
+        """Post a claim only after an external escrow proof has passed all gates."""
+        settings = get_settings()
+        if not settings.auto_claim_enabled:
+            return {"success": False, "reason": "AUTO_CLAIM_DISABLED"}
+        proof = verified_escrow if isinstance(verified_escrow, dict) else {}
+        if not (
+            proof.get("is_funded") is True
+            and proof.get("proof_verified") is True
+            and str(proof.get("currency", "")).upper() == "USDC"
+            and str(proof.get("chain", "")).lower() == "base"
+            and proof.get("proof_source") in {"platform_api", "onchain_tx"}
+            and proof.get("proof_reference")
+        ):
+            return {"success": False, "reason": "VERIFIED_BASE_USDC_ESCROW_REQUIRED"}
         if not isinstance(payload, dict):
             return {"success": False, "reason": "INVALID_PAYLOAD"}
 
@@ -167,10 +185,12 @@ def execute_claim_staking(
     payload: Dict[str, Any],
     github_client: Optional[Any] = None,
     firestore_client: Optional[Any] = None,
+    verified_escrow: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Execute intent staking on target issue."""
+    """Execute intent staking only with a verified escrow receipt."""
     return _claim_staker_instance.stake_intent(
         payload=payload,
         github_client=github_client,
         firestore_client=firestore_client,
+        verified_escrow=verified_escrow,
     )

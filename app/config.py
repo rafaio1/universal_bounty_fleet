@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         description="GitHub Personal Access Token or App Token",
     )
     github_webhook_secret: Optional[str] = Field(
-        default="ubf-dev-secret-2026",
+        default=None,
         validation_alias="GITHUB_WEBHOOK_SECRET",
         description="HMAC secret key for GitHub webhook validation",
     )
@@ -84,16 +84,17 @@ class Settings(BaseSettings):
         description="Force use of in-memory lock transport for testing",
     )
 
+    auto_claim_enabled: bool = Field(
+        default=False,
+        validation_alias="AUTO_CLAIM_ENABLED",
+        description="Require explicit opt-in after an authoritative escrow verifier is wired",
+    )
+
     # Payout Routing Invariant Addresses
     evm_payout_address: str = Field(
-        default="0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4",
+        default="0x398826722Df83a3b7E360Eec399401d67af1bDe9",
         validation_alias="EVM_PAYOUT_ADDRESS",
         description="Standard EVM payout wallet address",
-    )
-    stellar_payout_address: str = Field(
-        default="GCL6OXAMLD75BMTINA6EMRUDWK5THQUSHMYNLSNBCJAPZJHNYJTUNIBC",
-        validation_alias="STELLAR_PAYOUT_ADDRESS",
-        description="Standard Stellar/Soroban payout address",
     )
 
 

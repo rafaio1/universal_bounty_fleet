@@ -32,7 +32,8 @@ def test_f4_boundary_fractional_cent_and_large_amounts(mock_vertex_client):
         "reasoning": "High-value enterprise grant confirmed."
     })
     res = run_escrow_evaluation(payload, mock_vertex_client)
-    assert res["is_funded"] is True
+    assert res["is_funded"] is False
+    assert res["proof_verified"] is False
     assert res["amount_usd"] == 250000.50
 
 

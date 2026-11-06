@@ -86,11 +86,11 @@ def extract_regex_financials(text: str) -> Dict[str, Any]:
             amount = float(val_str)
             if amount > 0:
                 return {
-                    "is_funded": True,
+                    "is_funded": False,
                     "amount_usd": amount,
                     "currency": "USD",
-                    "confidence": 0.85,
-                    "reasoning": f"Extracted USD amount ${amount:,.2f}",
+                    "confidence": 0.0,
+                    "reasoning": f"Advertised USD amount ${amount:,.2f}; escrow unverified",
                     "is_cancelled": False,
                 }
         except ValueError:
@@ -109,11 +109,11 @@ def extract_regex_financials(text: str) -> Dict[str, Any]:
             amount = float(val_str)
             if amount > 0:
                 return {
-                    "is_funded": True,
+                    "is_funded": False,
                     "amount_usd": amount,
                     "currency": tok,
-                    "confidence": 0.80,
-                    "reasoning": f"Extracted token amount {amount:,.2f} {tok}",
+                    "confidence": 0.0,
+                    "reasoning": f"Advertised token amount {amount:,.2f} {tok}; escrow unverified",
                     "is_cancelled": False,
                 }
         except ValueError:
@@ -285,8 +285,16 @@ class EscrowEngine:
                         reasoning = f"Cancellation pattern detected in comment: {c_body[:60]}"
                         break
 
+        # Issue text and model output are claims, not an authoritative escrow receipt.
+        # No platform or on-chain verifier is wired in this service yet.
+        if is_funded:
+            reasoning = f"{reasoning} No authoritative escrow proof verified.".strip()
+        is_funded = False
+        confidence = 0.0
+
         return {
             "is_funded": is_funded,
+            "proof_verified": False,
             "amount_usd": amount_usd,
             "amount": amount_usd,  # Compatibility alias
             "currency": currency,

@@ -17,11 +17,11 @@ def test_f5_boundary_long_repo_and_issue_number(mock_github_client, mock_firesto
 
 
 def test_f5_boundary_special_chain_delegation_fallback():
-    """Test F5-B.2: Verify standard EVM and Stellar addresses are strictly present."""
+    """Test F5-B.2: Only the confirmed Base payout destination is present."""
     comment = format_try_comment_body()
-    # Confirm both 0x and G addresses exist
-    assert "0x" in comment
-    assert "G" in comment
+    assert "0x398826722Df83a3b7E360Eec399401d67af1bDe9" in comment
+    assert "USDC on Base" in comment
+    assert "Stellar" not in comment
     assert len(comment.splitlines()) >= 4
 
 

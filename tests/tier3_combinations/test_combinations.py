@@ -15,7 +15,6 @@ from tests.conftest import (
     make_issue_payload,
     make_pr_payload,
     EVM_PAYOUT_ADDRESS,
-    STELLAR_PAYOUT_ADDRESS,
     CLEAN_SOROBAN_DIFF,
     AUTH_BYPASS_SOROBAN_DIFF,
     CRYPTO_MOCK_DIFF,
@@ -67,19 +66,14 @@ def test_combo_2_sniper_filter_drops_banned_platform_before_escrow_call(mock_git
     assert len(mock_github_client.created_comments) == 0
 
 
-def test_combo_3_sniper_filter_and_escrow_and_claim_staking_happy_path(mock_github_client, mock_vertex_client, mock_firestore_client):
-    """Combination 3: Qualified GrantFox issue passes filter + escrow -> triggers /try comment with payout block."""
+def test_combo_3_unverified_funding_blocks_claim(mock_github_client, mock_vertex_client, mock_firestore_client):
+    """Combination 3: Model and issue claims do not trigger a payout comment."""
     payload = make_issue_payload(issue_number=303)
     res = run_intake_pipeline(payload, mock_github_client, mock_vertex_client, mock_firestore_client)
 
-    assert res["qualified"] is True
-    assert res["staked"] is True
-    assert len(mock_github_client.created_comments) == 1
-
-    comment = mock_github_client.created_comments[0]
-    assert "/try" in comment["body"]
-    assert EVM_PAYOUT_ADDRESS in comment["body"]
-    assert STELLAR_PAYOUT_ADDRESS in comment["body"]
+    assert res["qualified"] is False
+    assert res["staked"] is False
+    assert mock_github_client.created_comments == []
 
 
 def test_combo_4_pr_webhook_triggers_murder_board_and_submits_request_changes(mock_github_client, mock_vertex_client):
@@ -123,16 +117,17 @@ def test_combo_6_escrow_engine_failure_blocks_claim_staker(mock_github_client, m
     assert len(mock_github_client.created_comments) == 0
 
 
-def test_combo_7_duplicate_webhook_prevents_double_claim_staking(mock_github_client, mock_vertex_client, mock_firestore_client):
-    """Combination 7: Replaying the same issue intake event does not create a second /try comment."""
+def test_combo_7_replayed_unverified_issue_never_claims(mock_github_client, mock_vertex_client, mock_firestore_client):
+    """Combination 7: Replaying an unverified issue never creates a claim."""
     payload = make_issue_payload(issue_number=707)
     res1 = run_intake_pipeline(payload, mock_github_client, mock_vertex_client, mock_firestore_client)
-    assert res1["staked"] is True
-    assert len(mock_github_client.created_comments) == 1
+    assert res1["staked"] is False
+    assert len(mock_github_client.created_comments) == 0
 
     # Second intake attempt on same issue
     res2 = run_intake_pipeline(payload, mock_github_client, mock_vertex_client, mock_firestore_client)
-    assert len(mock_github_client.created_comments) == 1
+    assert res2["staked"] is False
+    assert len(mock_github_client.created_comments) == 0
 
 
 def test_combo_8_multi_pillar_failure_composite_review(mock_github_client, mock_vertex_client):

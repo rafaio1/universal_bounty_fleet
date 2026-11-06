@@ -66,11 +66,12 @@ def test_adversarial_4_deeply_nested_macro_recursion():
 
 
 def test_adversarial_5_tampered_payout_address_attempt():
-    """Adversarial 5: Ensures arbitrary unauthorized payout addresses cannot replace CEO's hardcoded addresses."""
+    """Adversarial 5: Claim template contains only the confirmed Base recipient."""
     from tests.tier1_feature.test_f5_claim_staker import format_try_comment_body
-    from tests.conftest import EVM_PAYOUT_ADDRESS, STELLAR_PAYOUT_ADDRESS
+    from tests.conftest import EVM_PAYOUT_ADDRESS
 
     body = format_try_comment_body()
     assert "0xAttackerAddress" not in body
     assert EVM_PAYOUT_ADDRESS in body
-    assert STELLAR_PAYOUT_ADDRESS in body
+    assert "Stellar" not in body
+    assert "0xF7b492cCBA473254E392Df444ce2dF4BE0AA29F4" not in body

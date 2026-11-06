@@ -13,7 +13,6 @@ from tests.conftest import (
     make_issue_payload,
     make_pr_payload,
     EVM_PAYOUT_ADDRESS,
-    STELLAR_PAYOUT_ADDRESS,
     CLEAN_SOROBAN_DIFF,
     AUTH_BYPASS_SOROBAN_DIFF,
     WEBHOOK_SECRET,
@@ -30,17 +29,14 @@ def client():
     return TestClient(app)
 
 
-def test_scenario_1_valid_grantfox_bounty_discovery_to_intent_stake(
+def test_scenario_1_grantfox_text_does_not_prove_escrow(
     mock_github_client,
     mock_vertex_client,
     mock_firestore_client
 ):
     """
-    Scenario 1 (S1): Valid GrantFox Bounty Discovery to Intent Stake
-    - Webhook receives new GrantFox issue in active Soroban repository.
-    - Sniper filter qualifies issue (no competitor, not archived, approved platform).
-    - Escrow engine evaluates GrantFox smart contract lock of $5,000 USD.
-    - Autonomous claim staker posts `/try` comment with verified EVM and Stellar payout addresses.
+    Scenario 1 (S1): A GitHub comment and model claim do not prove escrow.
+    The intake pipeline must not post `/try` without a trusted receipt.
     """
     grantfox_payload = make_issue_payload(
         repo_name="stellar/soroban-examples",
@@ -59,14 +55,9 @@ def test_scenario_1_valid_grantfox_bounty_discovery_to_intent_stake(
         firestore_client=mock_firestore_client
     )
 
-    assert result["qualified"] is True
-    assert result["staked"] is True
-    assert len(mock_github_client.created_comments) == 1
-
-    comment = mock_github_client.created_comments[0]
-    assert "/try" in comment["body"]
-    assert EVM_PAYOUT_ADDRESS in comment["body"]
-    assert STELLAR_PAYOUT_ADDRESS in comment["body"]
+    assert result["qualified"] is False
+    assert result["staked"] is False
+    assert mock_github_client.created_comments == []
 
 
 def test_scenario_2_banned_platform_and_competitor_sniping_rejection(
@@ -170,7 +161,7 @@ def test_scenario_5_complete_end_to_end_bounty_lifecycle_simulation(
 ):
     """
     Scenario 5 (S5): Complete End-to-End Bounty Lifecycle Simulation
-    1. Gateway receives issue webhook -> Intake Taskmaster qualifies & stakes `/try` with payout addresses.
+    1. Gateway receives issue webhook -> Intake declines staking without verified escrow.
     2. Engineer implements fix and opens Draft PR.
     3. Gateway receives PR webhook -> Victory Audit Fleet runs 3-Pillar Murder Board on clean code.
     4. Victory Audit passes -> Submits APPROVE review -> Draft PR converted to Ready for Review.
@@ -193,8 +184,8 @@ def test_scenario_5_complete_end_to_end_bounty_lifecycle_simulation(
 
     # Step 2: Intake Staking
     intake_res = run_intake_pipeline(issue_payload, mock_github_client, mock_vertex_client, mock_firestore_client)
-    assert intake_res["staked"] is True
-    assert len(mock_github_client.created_comments) >= 1
+    assert intake_res["staked"] is False
+    assert mock_github_client.created_comments == []
 
     # Step 3: PR Opened Webhook
     pr_payload = make_pr_payload(pr_number=501, draft=True)
